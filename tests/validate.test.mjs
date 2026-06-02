@@ -58,3 +58,24 @@ test('skill encodes required reliability patterns from the source note', () => {
     assert.ok(markdown.includes(needle), `missing pattern: ${needle}`);
   }
 });
+
+test('skill encodes Pi frontend Gemini routing with safe detection', () => {
+  const markdown = readFileSync(path.join(skillDir, 'SKILL.md'), 'utf8').toLowerCase();
+  const required = [
+    'frontend page/ui',
+    'google/gemini-3.5-flash',
+    'google/gemini-3.1-pro-preview',
+    'vercel-ai-gateway/google/gemini-3.5-flash',
+    'gemini_api_key',
+    'ai_gateway_api_key',
+    'never print token values',
+    'pi --list-models gemini',
+    'keep non-frontend roles on gpt',
+    'openai-codex/gpt-5.5',
+    'gpt-5.4-mini',
+    'gpt-5.3-codex-spark',
+  ];
+  for (const needle of required) {
+    assert.ok(markdown.includes(needle), `missing Pi model-routing pattern: ${needle}`);
+  }
+});

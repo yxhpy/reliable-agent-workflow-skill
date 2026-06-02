@@ -69,7 +69,7 @@ Use reliable-agent-workflow to implement this refactor with review and e2e verif
 
 The skill triggers on complex coding tasks, refactors, migrations, architecture work, debugging, security-sensitive changes, Best-of-N requests, and verification/check-work requests.
 
-For faster multi-agent runs, the skill includes role-specific model routing guidance with editable GPT-series examples. Configure the actual models in your own Codex, Claude Code, Grok, or Pi settings/agent definitions; the installer does not mutate real global CLI configuration.
+For faster multi-agent runs, the skill includes role-specific model routing guidance with editable GPT-series examples. In Pi, frontend page/UI implementation can prefer Gemini-family models when Google Gemini or Vercel AI Gateway credentials are present, while non-frontend roles stay GPT-family by default. Configure the actual models in your own Codex, Claude Code, Grok, or Pi settings/agent definitions and confirm availability with `pi --list-models`; the installer does not mutate real global CLI configuration.
 
 ## Validate and Test
 

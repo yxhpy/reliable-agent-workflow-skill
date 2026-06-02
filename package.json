@@ -1,6 +1,6 @@
 {
   "name": "reliable-agent-workflow-skill",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": false,
   "description": "Agent Skills package for reliable multi-agent design, review, repair, and verification workflows.",
   "type": "module",
