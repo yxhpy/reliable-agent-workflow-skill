@@ -1,0 +1,35 @@
+{
+  "name": "reliable-agent-workflow-skill",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Agent Skills package for reliable multi-agent design, review, repair, and verification workflows.",
+  "type": "module",
+  "bin": {
+    "install-reliable-agent-workflow": "scripts/install.mjs",
+    "validate-reliable-agent-workflow": "scripts/validate-skill.mjs"
+  },
+  "files": [
+    "reliable-agent-workflow/",
+    "scripts/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "validate": "node scripts/validate-skill.mjs reliable-agent-workflow",
+    "test": "node --test tests/*.test.mjs",
+    "e2e": "node --test tests/e2e-install.test.mjs tests/cli-discovery.test.mjs"
+  },
+  "keywords": [
+    "agent-skills",
+    "codex",
+    "claude",
+    "grok",
+    "pi",
+    "subagents",
+    "workflow"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  }
+}
