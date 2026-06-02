@@ -3,6 +3,7 @@
 ## 0.3.0 - 2026-06-02
 
 ### Added
+- Cross-harness frontend page/UI routing: prefer local Gemini CLI (`gemini`) and Agy CLI (`agy`) for frontend specialist work when installed, then fall back to the invoking harness itself when unavailable.
 - Pi-specific frontend page/UI routing: when Google Gemini or Vercel AI Gateway credentials are present and a Gemini model is listed, launch frontend UI workers on Gemini-family models.
 - Secret-safe Pi credential detection guidance for `google`, `vercel-ai-gateway`, `GEMINI_API_KEY`, and `AI_GATEWAY_API_KEY` without printing token values.
 - Updated latest-model examples from official docs: `gpt-5.5` for strong GPT roles, `gpt-5.4-mini` for fast subagents, `gpt-5.3-codex-spark` for fast coding iteration, and Gemini examples such as `google/gemini-3.5-flash` and `google/gemini-3.1-pro-preview`.

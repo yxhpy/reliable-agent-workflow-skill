@@ -34,6 +34,7 @@ Known tool names vary by harness:
 - Pi: `subagent`, `todo`, `read`, `bash`, `edit`, `write`, `goal_complete` when a goal is active.
 - Claude Code: `Task`/subagents when available, `TodoWrite`, `Read`, `Bash`, `Edit`, `Write`.
 - Codex: use available agent/subagent features if present; otherwise use the single-agent fallback below and clearly label it.
+- Gemini CLI / Agy CLI: for frontend page/UI specialist roles, use local `gemini` and `agy` CLI sessions when those commands are installed; if they are not available locally, fallback to the current harness itself.
 
 If no subagent feature exists, do **not** fake independence. Use a `single-agent fallback`: complete one role at a time, write the same artifacts, run an explicit adversarial self-review pass, and ask the user before high-risk production changes.
 
@@ -48,11 +49,35 @@ Recommended routing presets, updated from current OpenAI/Codex and Gemini docs:
 | Orchestrator, artifact merger, simple final summary | inherit current model or use a fast default | low to medium | Keep coordination responsive; raise effort only for ambiguous product decisions. |
 | Scout, context-builder, docs/research specialist | GPT fast tier such as `gpt-5.4-mini` | low to medium | Fast read-only exploration, source gathering, and summarization. |
 | Design writer or design reviewer | strong GPT tier such as `gpt-5.5` | medium to high | Stronger reasoning for architecture, risk, and requirement trade-offs. |
-| Worker/implementer, non-frontend | `gpt-5.5`; use `gpt-5.3-codex-spark` for near-instant coding iteration when available | medium | Keep normal implementation on GPT-family models unless the task is specifically frontend page/UI work in Pi with Gemini available. |
-| Frontend page/UI implementer in Pi | Gemini when direct Google Gemini or Vercel AI Gateway credentials are present, for example `google/gemini-3.5-flash` | medium to high | Prefer Gemini-family models for pages, screens, components, forms, layout/CSS, and visual polish; fall back to GPT when no Gemini-capable credential/model is available. |
+| Worker/implementer, non-frontend | `gpt-5.5`; use `gpt-5.3-codex-spark` for near-instant coding iteration when available | medium | Keep normal implementation on GPT-family models unless the task is specifically frontend page/UI work, which uses the frontend CLI routing rule below when local CLIs are available. |
+| Frontend page/UI implementer | Local Gemini CLI (`gemini`) plus local Agy CLI (`agy`) when installed; fallback to the current harness itself | medium to high | Prefer dedicated local frontend-capable CLI sessions for pages, screens, components, forms, layout/CSS, and visual polish; if no local Gemini/Agy CLI is available, keep the original harness worker/model route. |
 | General reviewer, test reviewer, verifier | strong GPT tier such as `gpt-5.5` | high | Spend more reasoning on edge cases, regressions, test gaps, and plan alignment. |
 | Security reviewer, oracle, high-risk verifier | strongest available GPT-series reviewer, such as `gpt-5.5` or `gpt-5.5-pro` when available | high to xhigh | Use only when the task is security-sensitive, architectural, or high blast-radius. |
 | Best-of-N low-risk candidates | `gpt-5.4-mini` or `gpt-5.3-codex-spark` | low to medium | Parallelize cheap candidate generation, then review the winner with a stronger model. |
+
+Frontend CLI routing rule (applies to all harnesses):
+
+- For any task whose substantive work is frontend page/UI, screens, components, forms, styling, layout/CSS, or visual polish, prefer local CLI execution before harness-native model routing. Detect only command availability with checks such as `command -v gemini` and `command -v agy`; do not print secrets or config file contents:
+
+  ```bash
+  for cmd in gemini agy; do
+    if command -v "$cmd" >/dev/null 2>&1; then
+      echo "$cmd: available"
+    else
+      echo "$cmd: not found"
+    fi
+  done
+  ```
+
+- If both CLIs are available, use `gemini` for the primary frontend implementer or candidate and `agy` for an independent frontend reviewer, alternate candidate, or repair verifier. If only one is available, use the available CLI for the frontend role. If neither is available, fallback to the current harness itself: the original Codex, Claude Code, Grok, Pi, or single-agent worker/model route.
+- Non-interactive examples:
+
+  ```bash
+  gemini -p "Frontend implementer: implement the approved page/UI change, keep edits minimal, and run focused checks."
+  agy --print "Frontend reviewer: inspect the page/UI diff for behavior, accessibility, layout, and regression risks."
+  ```
+
+- Keep non-frontend roles on GPT-family/default routes unless the user explicitly asks to run the whole workflow through another CLI.
 
 Harness-specific handling:
 
@@ -113,19 +138,19 @@ Harness-specific handling:
   pi -p --model openai-codex/gpt-5.5:high "Verify the final diff against the requirements"
   ```
 
-  Before Pi frontend page/UI work, detect Gemini capability without exposing secrets. Check only key presence for direct Google Gemini (`google` in `~/.pi/agent/auth.json` or `GEMINI_API_KEY`) and Vercel AI Gateway (`vercel-ai-gateway` in `auth.json` or `AI_GATEWAY_API_KEY`). Never print token values, auth file contents, or full environment values.
+  For Pi's harness-native fallback after local `gemini`/`agy` CLIs are unavailable, detect Gemini capability without exposing secrets. Check only key presence for direct Google Gemini (`google` in `~/.pi/agent/auth.json` or `GEMINI_API_KEY`) and Vercel AI Gateway (`vercel-ai-gateway` in `auth.json` or `AI_GATEWAY_API_KEY`). Never print token values, auth file contents, or full environment values.
 
   ```bash
   node -e "const fs=require('fs'),os=require('os'),path=require('path'); const p=path.join(os.homedir(),'.pi','agent','auth.json'); const auth=fs.existsSync(p)?JSON.parse(fs.readFileSync(p,'utf8')):{}; console.log({ googleGemini: Boolean(auth.google || process.env.GEMINI_API_KEY), vercelAIGateway: Boolean(auth['vercel-ai-gateway'] || process.env.AI_GATEWAY_API_KEY) });"
   pi --list-models gemini
   ```
 
-  If direct Google Gemini is present and `pi --list-models gemini` lists the model, prefer Gemini for frontend page/UI implementation:
+  If direct Google Gemini is present, `pi --list-models gemini` lists the model, and the local frontend CLIs are not available, Pi may still prefer Gemini for frontend page/UI implementation as its own fallback route:
 
   ```typescript
   subagent({
     agent: "worker",
-    task: "Implement the approved frontend page/UI. Keep the rest of the workflow on GPT-family models.",
+    task: "Implement the approved frontend page/UI using Pi's native Gemini fallback. Keep the rest of the workflow on GPT-family models.",
     model: "google/gemini-3.5-flash:medium",
     async: true
   })
@@ -142,7 +167,7 @@ Harness-specific handling:
   })
   ```
 
-  If no Gemini-capable credential or listed Gemini model is available, frontend workers fall back to the normal GPT-family implementer route, such as `openai-codex/gpt-5.5:medium`. Do **not** globally override the generic `worker` to Gemini in `.pi/settings.json`; use the Gemini override only for frontend page/UI worker launches.
+  If no local Gemini/Agy CLI and no Gemini-capable Pi credential or listed Gemini model is available, frontend workers fall back to the normal GPT-family implementer route, such as `openai-codex/gpt-5.5:medium`. Do **not** globally override the generic `worker` to Gemini in `.pi/settings.json`; use the Gemini override only for frontend page/UI worker launches.
 
   When the `pi-subagents` extension is available, route non-frontend runs with the supported `model` field, per task in parallel fanout, or persistent `subagents.agentOverrides` in `.pi/settings.json` or `~/.pi/agent/settings.json`. Builtin agents inherit the current Pi default model unless an override is provided. For one-off tool calls, encode Pi thinking level in the model pattern suffix when needed.
 
