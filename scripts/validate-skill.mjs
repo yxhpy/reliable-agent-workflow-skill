@@ -60,6 +60,8 @@ function validateSkill(skillDir) {
     '# reliable agent workflow',
     'core contract',
     'harness adapter',
+    'role-specific model routing',
+    'gpt-series',
     'loop until zero open issues',
     'persistent artifacts',
     'phase 1: requirements and design',

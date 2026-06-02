@@ -45,6 +45,20 @@ Preview targets without writing:
 node scripts/install.mjs --agent all --dry-run
 ```
 
+## Upgrade
+
+One-command upgrade for all supported harnesses:
+
+```bash
+npm install -g github:yxhpy/reliable-agent-workflow-skill && install-reliable-agent-workflow --agent all --force
+```
+
+PowerShell equivalent:
+
+```powershell
+npm install -g github:yxhpy/reliable-agent-workflow-skill; install-reliable-agent-workflow --agent all --force
+```
+
 ## Use
 
 Ask your agent to use `reliable-agent-workflow`, for example:
@@ -54,6 +68,8 @@ Use reliable-agent-workflow to implement this refactor with review and e2e verif
 ```
 
 The skill triggers on complex coding tasks, refactors, migrations, architecture work, debugging, security-sensitive changes, Best-of-N requests, and verification/check-work requests.
+
+For faster multi-agent runs, the skill includes role-specific model routing guidance with editable GPT-series examples. Configure the actual models in your own Codex, Claude Code, Grok, or Pi settings/agent definitions; the installer does not mutate real global CLI configuration.
 
 ## Validate and Test
 

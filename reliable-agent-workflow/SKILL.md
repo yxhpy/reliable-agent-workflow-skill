@@ -37,6 +37,143 @@ Known tool names vary by harness:
 
 If no subagent feature exists, do **not** fake independence. Use a `single-agent fallback`: complete one role at a time, write the same artifacts, run an explicit adversarial self-review pass, and ask the user before high-risk production changes.
 
+## Role-Specific Model Routing
+
+Use role-specific model routing to reduce latency and cost without weakening the review and verification contract. This skill does **not** encode model routing in `SKILL.md` frontmatter; keep frontmatter limited to `name` and `description` for cross-harness compatibility. Choose models through the current harness settings, agent definitions, CLI flags, or orchestration tool. Treat GPT-series names below as editable examples: confirm the exact model IDs and capabilities available in the user's account before pinning them.
+
+Recommended GPT-series routing presets:
+
+| Workflow role | Example GPT-series model | Effort/thinking | Routing intent |
+| --- | --- | --- | --- |
+| Orchestrator, artifact merger, simple final summary | inherit current model or use a fast default | low to medium | Keep coordination responsive; raise effort only for ambiguous product decisions. |
+| Scout, context-builder, docs/research specialist | `gpt-5.4-mini` | low to medium | Fast read-only exploration, source gathering, and summarization. |
+| Design writer or design reviewer | `gpt-5.4` | medium to high | Stronger reasoning for architecture, risk, and requirement trade-offs. |
+| Worker/implementer | `gpt-5.3-codex-spark` or `gpt-5.4` | medium | Prefer the coding-focused or cheaper model for narrow fixes; raise for risky implementation. |
+| General reviewer, test reviewer, verifier | `gpt-5.4` | high | Spend more reasoning on edge cases, regressions, test gaps, and plan alignment. |
+| Security reviewer, oracle, high-risk verifier | strongest available GPT-series reviewer, such as `gpt-5.5` | high to xhigh | Use only when the task is security-sensitive, architectural, or high blast-radius. |
+| Best-of-N low-risk candidates | `gpt-5.4-mini` or `gpt-5.3-codex-spark` | low to medium | Parallelize cheap candidate generation, then review the winner with a stronger model. |
+
+Harness-specific handling:
+
+- **Codex:** Prefer first-class custom agents in `.codex/agents/<role>.toml` or `~/.codex/agents/<role>.toml`. Each agent can set `model` and `model_reasoning_effort`; omitted optional fields inherit from the parent session. Keep parent sandbox and approval restrictions in mind because runtime restrictions still apply to spawned children. Example editable agent files:
+
+  ```toml
+  # .codex/agents/reviewer.toml
+  name = "reviewer"
+  description = "Read-only reviewer focused on correctness, security, and missing tests."
+  model = "gpt-5.4"
+  model_reasoning_effort = "high"
+  sandbox_mode = "read-only"
+  developer_instructions = """
+  Inspect the real diff and report evidence-backed findings only.
+  Do not edit files.
+  """
+  ```
+
+  ```toml
+  # .codex/agents/docs_researcher.toml
+  name = "docs_researcher"
+  description = "Fast documentation and API behavior researcher."
+  model = "gpt-5.4-mini"
+  model_reasoning_effort = "medium"
+  sandbox_mode = "read-only"
+  developer_instructions = "Return concise source-backed guidance without code edits."
+  ```
+
+  ```toml
+  # .codex/agents/implementer.toml
+  name = "implementer"
+  description = "Single-writer implementation agent for approved plans."
+  model = "gpt-5.3-codex-spark"
+  model_reasoning_effort = "medium"
+  developer_instructions = "Make the smallest approved code change and run focused validation."
+  ```
+
+  For one-off parent sessions, use `codex --model gpt-5.4`, `codex -c model='"gpt-5.4"'`, or a profile such as `codex --profile deep-review`, then ask Codex to spawn the named role agents explicitly.
+
+- **Claude Code:** Use Claude-compatible model aliases or full Claude model IDs in subagent/skill configuration, not raw GPT model names. Normal Claude Code model values are `haiku`, `sonnet`, `opus`, `inherit`, or full Claude/Bedrock/Vertex/Foundry model identifiers. Translate GPT tiers instead: `gpt-5.4-mini`-style fast scouts map to `haiku` or low-effort `sonnet`; `gpt-5.4` reviewers map to high-effort `sonnet` or `opus`; highest-risk oracle/verifier roles map to `opus` with high/xhigh effort. GPT names are only valid if an approved Anthropic-compatible gateway explicitly remaps them. Example project subagent frontmatter:
+
+  ```markdown
+  ---
+  name: verifier
+  description: Independent verifier for reliable-agent-workflow runs
+  model: opus
+  ---
+
+  Verify the actual diff against the original requirements. Do not implement fixes.
+  ```
+
+  Do not add Claude-only `model` or `effort` keys to this shared `SKILL.md`; use `.claude/agents/`, `.claude/settings.json`, `claude --model opus --effort high`, `/model`, `/effort`, `CLAUDE_CODE_SUBAGENT_MODEL`, or `CLAUDE_CODE_EFFORT_LEVEL` outside the skill package when the user approves it.
+
+- **Pi:** Pi can run GPT/OpenAI-capable models through configured providers, `~/.pi/agent/models.json`, settings, CLI flags, SDK sessions, and extensions. Core Pi skills do not route roles through skill frontmatter. Without a subagent extension, run separate role sessions or SDK sessions, for example:
+
+  ```bash
+  pi -p --provider openai --model openai/gpt-5.4-mini --thinking low "Scout this repo and write context.md"
+  pi -p --provider openai --model openai/gpt-5.4 --thinking high "Verify the final diff against the requirements"
+  ```
+
+  When the `pi-subagents` extension is available, route per run with the supported `model` field, per task in parallel fanout, or persistent `subagents.agentOverrides` in `.pi/settings.json` or `~/.pi/agent/settings.json`. Builtin agents inherit the current Pi default model unless an override is provided. For one-off tool calls, encode Pi thinking level in the model pattern suffix when needed.
+
+  ```typescript
+  subagent({
+    agent: "reviewer",
+    task: "Review the current diff for correctness. Do not edit files.",
+    model: "openai/gpt-5.4:high",
+    async: true
+  })
+  ```
+
+  ```typescript
+  subagent({
+    tasks: [
+      { agent: "scout", task: "Map relevant files.", model: "openai/gpt-5.4-mini:low" },
+      { agent: "reviewer", task: "Review tests and regressions.", model: "openai/gpt-5.4:high" }
+    ],
+    concurrency: 2,
+    context: "fresh",
+    async: true
+  })
+  ```
+
+  ```json
+  {
+    "subagents": {
+      "agentOverrides": {
+        "scout": { "model": "openai/gpt-5.4-mini", "thinking": "low" },
+        "context-builder": { "model": "openai/gpt-5.4-mini", "thinking": "low" },
+        "researcher": { "model": "openai/gpt-5.4-mini", "thinking": "medium" },
+        "planner": { "model": "openai/gpt-5.4", "thinking": "medium" },
+        "worker": { "model": "openai/gpt-5.3-codex-spark", "thinking": "medium" },
+        "reviewer": { "model": "openai/gpt-5.4", "thinking": "high" },
+        "oracle": { "model": "openai/gpt-5.5", "thinking": "high" }
+      }
+    }
+  }
+  ```
+
+  Use project `.pi/settings.json` for repo-specific routing and user `~/.pi/agent/settings.json` for global defaults. Do not mutate real global config during this workflow unless the user explicitly asks; otherwise provide the snippet for the user to copy. If a GPT model is missing, run `pi --list-models` and configure the provider in `~/.pi/agent/models.json` before relying on it.
+
+- **Grok:** Use model aliases in `~/.grok/config.toml` and select the alias per role with headless `-m/--model` or the TUI `/model` command. Public Grok docs do not guarantee Claude-style per-subagent `model` frontmatter precedence, so verify with `grok inspect` and a small local spawned-agent test before relying on automatic subagent routing. Editable GPT alias example:
+
+  ```toml
+  [model.gpt-review]
+  model = "gpt-5.4"
+  base_url = "https://api.openai.com/v1"
+  name = "GPT reviewer"
+  env_key = "OPENAI_API_KEY"
+
+  [model.gpt-scout]
+  model = "gpt-5.4-mini"
+  base_url = "https://api.openai.com/v1"
+  name = "GPT scout"
+  env_key = "OPENAI_API_KEY"
+
+  [models]
+  default = "gpt-scout"
+  ```
+
+  Then run role-specific sessions such as `grok inspect`, `grok -p "Review this diff" -m gpt-review`, or `grok -p "Map the codebase" -m gpt-scout`. Custom OpenAI endpoints may not provide Grok-specific tools or reasoning semantics, so treat this as provider routing rather than a guarantee of identical behavior.
+
 ## Setup
 
 1. Restate the objective as success criteria and assumptions. Ask before proceeding if requirements are ambiguous.
