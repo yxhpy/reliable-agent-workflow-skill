@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.1 - 2026-06-02
+
+### Fixed
+- Made the Pi CLI discovery E2E test resolve Homebrew/npm-global symlinked installs on macOS by following the real `pi` binary path and falling back to `npm root -g`.
+- Isolated installer E2E tests from real agent home environment variables so temp-home tests cannot write into configured Codex/Claude/Grok/Pi homes.
+
+### Changed
+- Added the direct npm global install command to the README release instructions.
+
+### Verified
+- Ran the full local macOS test, validation, E2E, and npm-pack install smoke suite on Darwin arm64 before publish.
+
 ## 0.3.0 - 2026-06-02
 
 ### Added

@@ -1,0 +1,231 @@
+{
+  "schemaVersion": 1,
+  "id": "macos-reliable-agent-workflow-skill-package",
+  "title": "适配本机 macOS；先在本机跑端到端验证，通过后再发布 reliable-agent-workflow skill/package",
+  "promptHash": "763358a4218f96b5fb08b11fccb6109298734bfd0f45614fb5021247ae372b02",
+  "promptSummary": "适配本机 macOS；先在本机跑端到端验证，通过后再发布 reliable-agent-workflow skill/package",
+  "createdAt": "2026-06-02T12:08:06Z",
+  "updatedAt": "2026-06-02T12:19:56Z",
+  "state": "blocked",
+  "detection": {
+    "dynamic": true,
+    "reason": "Dynamic workflow recommended: approval-risk, verification",
+    "signals": [
+      "approval-risk",
+      "verification"
+    ],
+    "requiredPlugins": [
+      "dynamic-workflow",
+      "task-gate"
+    ],
+    "recommendedPackets": [
+      "01-orchestration",
+      "approval",
+      "implementation",
+      "integration",
+      "verification"
+    ],
+    "riskLevel": "high",
+    "score": 4
+  },
+  "approvals": [
+    {
+      "id": "approval-plan",
+      "scope": "plan",
+      "status": "granted",
+      "reason": "Creating the local workflow artifact is safe and reversible.",
+      "grantedBy": "dynamic_workflow.ts",
+      "grantedAt": "2026-06-02T12:08:06Z"
+    },
+    {
+      "id": "approval-execute",
+      "scope": "execute",
+      "status": "granted",
+      "reason": "Explicit approval recorded.",
+      "grantedBy": "dynamic_workflow.ts",
+      "grantedAt": "2026-06-02T12:10:09Z"
+    },
+    {
+      "id": "approval-release",
+      "scope": "release",
+      "status": "granted",
+      "reason": "Local macOS verification passed and user requested publish; actual publish was attempted after E2E but blocked by npm permission.",
+      "grantedBy": "owner-agent",
+      "grantedAt": "2026-06-02T12:19:56Z"
+    }
+  ],
+  "packets": [
+    {
+      "id": "01-orchestration",
+      "role": "owner-plan",
+      "objective": "Restate goal, success criteria, constraints, risks, and packet boundaries.",
+      "status": "completed",
+      "dependencies": [],
+      "requiredPlugins": [
+        "dynamic-workflow",
+        "task-gate"
+      ],
+      "approvalRequired": false,
+      "mode": "owner",
+      "expectedEvidence": [
+        "plan.md",
+        "orchestration.md",
+        "workflow.json"
+      ]
+    },
+    {
+      "id": "02-implementation",
+      "role": "owner-implementation",
+      "objective": "Apply local edits or supervised execution after required approvals are granted.",
+      "status": "completed",
+      "dependencies": [
+        "01-orchestration"
+      ],
+      "requiredPlugins": [],
+      "approvalRequired": true,
+      "mode": "owner",
+      "expectedEvidence": [
+        "diff or changed paths",
+        "bounded command output"
+      ]
+    },
+    {
+      "id": "03-integration",
+      "role": "owner-integration",
+      "objective": "Integrate packet results, resolve conflicts, and reject stale or unsafe outputs.",
+      "status": "completed",
+      "dependencies": [
+        "02-implementation"
+      ],
+      "requiredPlugins": [
+        "dynamic-workflow"
+      ],
+      "approvalRequired": false,
+      "mode": "owner",
+      "expectedEvidence": [
+        "integration decisions",
+        "accepted/rejected results"
+      ]
+    },
+    {
+      "id": "04-verification",
+      "role": "owner-verification",
+      "objective": "Run narrow-to-broad checks and produce a final evidence-backed verdict.",
+      "status": "completed",
+      "dependencies": [
+        "03-integration"
+      ],
+      "requiredPlugins": [
+        "dynamic-workflow"
+      ],
+      "approvalRequired": false,
+      "mode": "owner",
+      "expectedEvidence": [
+        "test/validator commands",
+        "final-report.md"
+      ]
+    }
+  ],
+  "results": [
+    {
+      "packetId": "01-orchestration",
+      "status": "success",
+      "summary": "Dynamic workflow and task-gate plan created for macOS E2E-first release.",
+      "evidence": [
+        "results/01-orchestration.md"
+      ],
+      "completedAt": "2026-06-02T12:19:56Z"
+    },
+    {
+      "packetId": "02-implementation",
+      "status": "success",
+      "summary": "Applied macOS/Homebrew Pi discovery and env-isolated installer E2E fixes; bumped 0.3.1 and updated docs/changelog.",
+      "evidence": [
+        "results/02-implementation.md"
+      ],
+      "completedAt": "2026-06-02T12:19:56Z"
+    },
+    {
+      "packetId": "03-integration",
+      "status": "success",
+      "summary": "Integrated scout and reviewer findings; accepted env isolation and workflow finalization findings.",
+      "evidence": [
+        "results/03-integration.md",
+        "results/scout-macos.md",
+        "results/reviewer-release-gate.md"
+      ],
+      "completedAt": "2026-06-02T12:19:56Z"
+    },
+    {
+      "packetId": "04-verification",
+      "status": "blocked",
+      "summary": "Local macOS verification passed; actual npm publish attempted after E2E and blocked by npm authentication/package permission.",
+      "evidence": [
+        "results/04-verification.md",
+        "final-report.md"
+      ],
+      "completedAt": "2026-06-02T12:19:56Z"
+    }
+  ],
+  "evidence": [
+    {
+      "plugin": "dynamic-workflow",
+      "commandOrTool": "dynamic_workflow.ts detect/new/approve plus workflow artifact integration",
+      "status": "success",
+      "exitCode": 0,
+      "artifactPath": "workflow.json",
+      "summary": "Dynamic workflow artifact created, execution/release gates recorded, and packet results integrated.",
+      "createdAt": "2026-06-02T12:19:56Z"
+    },
+    {
+      "plugin": "task-gate",
+      "commandOrTool": "task_gate.ts --json",
+      "status": "success",
+      "exitCode": 0,
+      "artifactPath": "plan.md",
+      "summary": "Task Gate produced six numbered tasks for unit/validate, E2E, tarball smoke, macOS fixes, version/changelog, and publish.",
+      "createdAt": "2026-06-02T12:19:56Z"
+    },
+    {
+      "plugin": "pi-subagents",
+      "commandOrTool": "subagent parallel scout+reviewer",
+      "status": "success",
+      "exitCode": 0,
+      "artifactPath": "results/",
+      "summary": "Read-only scout and reviewer produced macOS compatibility and release-gate artifacts.",
+      "createdAt": "2026-06-02T12:19:56Z"
+    }
+  ],
+  "verification": [
+    {
+      "check": "local macOS unit/validate/e2e/pack smoke",
+      "status": "pass",
+      "command": "npm test && npm run validate && npm run e2e && npm pack/install smoke",
+      "summary": "Passed on darwin arm64 with Node v26.0.0 and npm 11.12.1; tests also protected ambient agent-home env vars.",
+      "createdAt": "2026-06-02T12:19:56Z"
+    },
+    {
+      "check": "npm publish dry-run",
+      "status": "pass",
+      "command": "npm publish --dry-run",
+      "summary": "Dry-run package publish for reliable-agent-workflow-skill@0.3.1 passed with 8 packaged files.",
+      "createdAt": "2026-06-02T12:19:56Z"
+    },
+    {
+      "check": "actual npm publish",
+      "status": "blocked",
+      "command": "npm publish",
+      "summary": "Blocked: npm whoami reports not authenticated and registry returned E404/not found or no permission for reliable-agent-workflow-skill@0.3.1.",
+      "createdAt": "2026-06-02T12:19:56Z"
+    }
+  ],
+  "finalVerdict": "blocked",
+  "artifacts": {
+    "workflowJson": "workflow.json",
+    "plan": "plan.md",
+    "orchestration": "orchestration.md",
+    "packetsDir": "packets",
+    "resultsDir": "results",
+    "finalReport": "final-report.md"
+  }
+}

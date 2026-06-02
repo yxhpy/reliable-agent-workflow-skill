@@ -6,7 +6,14 @@ The skill is compatible with Codex, Claude Code, Grok, and Pi skill discovery co
 
 ## Install
 
-Install directly from GitHub with npm:
+Install from npm:
+
+```bash
+npm install -g reliable-agent-workflow-skill
+install-reliable-agent-workflow --agent all --force
+```
+
+Or install directly from GitHub with npm:
 
 ```bash
 npm install -g github:yxhpy/reliable-agent-workflow-skill
